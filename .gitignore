@@ -1,0 +1,16 @@
+# Python (gerado automaticamente)
+__pycache__/
+*.pyc
+
+# Pasta de apoio / testes
+Auxiliares/
+
+# Ambiente / segredos (se um dia existir)
+.env
+.venv/
+venv/
+
+# Sistema / editor
+.vscode/
+.DS_Store
+Thumbs.db
