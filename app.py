@@ -4,6 +4,7 @@ from ranking import RankingCalculator
 from datetime import datetime
 import pandas as pd
 import time
+from ferramentas import sorteador_jogador
 
 # FORÇA ATUALIZAÇÃO - Limpa cache na primeira execução
 # Resolve problema: jogadores/jogos desativados ainda aparecem
@@ -97,7 +98,8 @@ else:
 
 menu = st.sidebar.radio(
     "Menu Principal",
-    ["🏠 Início", "➕ Registrar Partida", "🏆 Rankings", "👥 Jogadores", "🎮 Jogos", "📊 Histórico", "✏️ Editar"]
+    ["🏠 Início", "➕ Registrar Partida", "🏆 Rankings", "👥 Jogadores", "🎮 Jogos",
+    "📊 Histórico", "🛠️ Ferramentas", "✏️ Editar"]
 )
 
 st.sidebar.markdown("---")
@@ -609,6 +611,18 @@ elif menu == "📊 Histórico":
         st.metric("Total de Partidas", len(df_exibir))
     else:
         st.info("Nenhuma partida registrada ainda.")
+
+# ====================
+# PÁGINA: FERRAMENTAS
+# ====================
+elif menu == "🛠️ Ferramentas":
+    st.title("🛠️ Ferramentas")
+    
+    # Abas para cada ferramenta
+    tab1 = st.tabs(["🎲 Sorteador de Jogador"])[0]
+    
+    with tab1:
+        sorteador_jogador.render(db)
 
 # ====================
 # PÁGINA: EDITAR
