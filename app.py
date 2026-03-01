@@ -5,6 +5,7 @@ from datetime import datetime
 import pandas as pd
 import time
 from ferramentas import sorteador_jogador
+import gdrive_sync
 
 # FORÇA ATUALIZAÇÃO - Limpa cache na primeira execução
 # Resolve problema: jogadores/jogos desativados ainda aparecem
@@ -12,6 +13,11 @@ if 'cache_limpo' not in st.session_state:
     st.cache_data.clear()
     st.cache_resource.clear()
     st.session_state.cache_limpo = True
+
+# Sincroniza DB com Google Drive na primeira execução
+if 'db_baixado' not in st.session_state:
+    gdrive_sync.baixar_db()
+    st.session_state.db_baixado = True
 
 # Configuração da página
 st.set_page_config(
@@ -269,6 +275,10 @@ elif menu == "➕ Registrar Partida":
                 # Recalcula Elos
                 with st.spinner("Recalculando Elos..."):
                     RankingCalculator.recalcular_todos_elos(db)
+                
+                # Sincroniza com Drive
+                with st.spinner("Salvando backup no Drive..."):
+                    gdrive_sync.fazer_upload_db()
                 
                 st.info("✨ Elos atualizados!")
                 st.balloons()
