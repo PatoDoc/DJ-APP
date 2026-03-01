@@ -251,34 +251,29 @@ elif menu == "➕ Registrar Partida":
         submit = st.form_submit_button("💾 Salvar Partida", width="stretch")
         
         if submit:
-            # Valida posições únicas
-            posicoes = [x[1] for x in jogadores_posicoes]
-            if len(posicoes) != len(set(posicoes)):
-                st.error("❌ Não pode ter posições repetidas!")
+            valida_str = 'S' if valida_ranking else 'N'
+            time_str = 'S' if eh_jogo_time else 'N'
+                
+            sucesso = db.add_partida(
+                jogo_id, 
+                data_partida, 
+                jogadores_posicoes, 
+                observacoes,
+                valida_ranking=valida_str,
+                eh_jogo_time=time_str
+            )
+            
+            if sucesso:
+                st.success("✅ Partida registrada com sucesso!")
+                
+                # Recalcula Elos
+                with st.spinner("Recalculando Elos..."):
+                    RankingCalculator.recalcular_todos_elos(db)
+                
+                st.info("✨ Elos atualizados!")
+                st.balloons()
             else:
-                valida_str = 'S' if valida_ranking else 'N'
-                time_str = 'S' if eh_jogo_time else 'N'
-                
-                sucesso = db.add_partida(
-                    jogo_id, 
-                    data_partida, 
-                    jogadores_posicoes, 
-                    observacoes,
-                    valida_ranking=valida_str,
-                    eh_jogo_time=time_str
-                )
-                
-                if sucesso:
-                    st.success("✅ Partida registrada com sucesso!")
-                    
-                    # Recalcula Elos
-                    with st.spinner("Recalculando Elos..."):
-                        RankingCalculator.recalcular_todos_elos(db)
-                    
-                    st.info("✨ Elos atualizados!")
-                    st.balloons()
-                else:
-                    st.error("❌ Erro ao salvar partida!")
+                st.error("❌ Erro ao salvar partida!")
 
 # ====================
 # PÁGINA: RANKINGS
@@ -289,12 +284,22 @@ elif menu == "🏆 Rankings":
     tab1, tab2 = st.tabs(["📊 Aproveitamento", "🎯 ELO"])
     
     with tab1:
-        st.subheader("Ranking por Aproveitamento (últimas 40 partidas)")
+        st.subheader("Ranking por Aproveitamento")
         
-        limite = st.slider("Quantas partidas considerar?", min_value=10, max_value=100, value=40, step=10)
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            limite = st.number_input("Quantas partidas considerar?", min_value=1, max_value=500, value=40)
+        with col2:
+            ultima_data = db.get_ultima_data_partida()
+            so_ultima_sessao = st.checkbox(
+                f"Só última sessão ({ultima_data})" if ultima_data else "Só última sessão",
+                value=False
+            )
+        
+        data_filtro = ultima_data if so_ultima_sessao else None
         
         with st.spinner("Calculando ranking..."):
-            ranking_aprov = RankingCalculator.calcular_ranking_aproveitamento(db, limite_partidas=limite)
+            ranking_aprov = RankingCalculator.calcular_ranking_aproveitamento(db, limite_partidas=limite, data_filtro=data_filtro)
         
         if len(ranking_aprov) > 0:
             # Formata para exibição

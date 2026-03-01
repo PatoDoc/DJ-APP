@@ -18,12 +18,12 @@ class RankingCalculator:
         
         for _, partida in df_partidas.iterrows():
             posicao = partida['posicao']
-            total = partida['total_jogadores']  # MAX(posicao)
+            total = partida['total_jogadores']  # COUNT real de jogadores
             peso = partida['peso']
             
-            # Quantos jogadores/times eu venci nessa partida?
+            # Vitórias = jogadores que ficaram abaixo (empatados não se enfrentam)
             vitorias = total - posicao
-            total_mini_partidas = total - 1  # total de confrontos
+            total_mini_partidas = total - 1  # total de confrontos 1v1
             
             # Pondera pelo peso ajustado (peso - 1)
             # Jogos de peso 1.0 (pura sorte) não contam no ranking
@@ -41,13 +41,13 @@ class RankingCalculator:
         return round(aproveitamento, 2)
     
     @staticmethod
-    def calcular_ranking_aproveitamento(db, limite_partidas=40):
+    def calcular_ranking_aproveitamento(db, limite_partidas=40, data_filtro=None):
         """Calcula ranking de aproveitamento para todos jogadores"""
         jogadores = db.get_jogadores()
         
         ranking = []
         for _, jogador in jogadores.iterrows():
-            partidas = db.get_todas_partidas_jogador(jogador['id'], limit=limite_partidas)
+            partidas = db.get_todas_partidas_jogador(jogador['id'], limit=limite_partidas, data_filtro=data_filtro)
             
             if len(partidas) == 0:
                 continue

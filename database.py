@@ -476,12 +476,20 @@ class Database:
         finally:
             conn.close()
     
-    def get_todas_partidas_jogador(self, jogador_id, limit=40, apenas_validas=True):
+    def get_ultima_data_partida(self):
+        """Retorna a data mais recente com partidas registradas"""
+        conn = self.get_connection()
+        result = conn.execute("SELECT MAX(data) FROM partidas WHERE valida_ranking = 'S'").fetchone()
+        conn.close()
+        return result[0] if result and result[0] else None
+
+    def get_todas_partidas_jogador(self, jogador_id, limit=40, apenas_validas=True, data_filtro=None):
         """Retorna as últimas N partidas de um jogador para cálculo de ranking"""
         jogador_id = int(jogador_id)
         conn = self.get_connection()
         
         filtro_valida = "AND p.valida_ranking = 'S'" if apenas_validas else ""
+        filtro_data = f"AND p.data = '{data_filtro}'" if data_filtro else ""
         
         query = f"""
             SELECT 
@@ -493,12 +501,13 @@ class Database:
                 r.posicao,
                 r.pontuacao,
                 r.time_id,
-                (SELECT MAX(posicao) FROM resultados WHERE partida_id = p.id) as total_jogadores
+                (SELECT COUNT(*) FROM resultados WHERE partida_id = p.id) as total_jogadores
             FROM resultados r
             JOIN partidas p ON r.partida_id = p.id
             JOIN jogos j ON p.jogo_id = j.id
             WHERE r.jogador_id = ?
             {filtro_valida}
+            {filtro_data}
             ORDER BY p.id DESC
             LIMIT ?
         """
