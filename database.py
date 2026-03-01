@@ -501,7 +501,7 @@ class Database:
                 r.posicao,
                 r.pontuacao,
                 r.time_id,
-                (SELECT COUNT(*) FROM resultados WHERE partida_id = p.id) as total_jogadores
+                (SELECT MAX(posicao) FROM resultados WHERE partida_id = p.id) as total_jogadores
             FROM resultados r
             JOIN partidas p ON r.partida_id = p.id
             JOIN jogos j ON p.jogo_id = j.id
