@@ -254,3 +254,70 @@ class RankingCalculator:
         ranking.index = ranking.index + 1
         ranking['elo'] = ranking['elo'].round(1)
         return ranking
+
+    @staticmethod
+    def calcular_historico_aproveitamento(db, limite_partidas=40):
+        """
+        Retorna o aproveitamento de cada jogador após cada partida registrada.
+        Retorna DataFrame com colunas: [partida_num, data, jogador, aproveitamento]
+        """
+        conn = db.get_connection()
+        query = """
+            SELECT 
+                p.id as partida_id,
+                p.data,
+                j.peso_bgg as peso,
+                r.jogador_id,
+                r.posicao,
+                (SELECT MAX(posicao) FROM resultados WHERE partida_id = p.id) as total_jogadores
+            FROM partidas p
+            JOIN jogos j ON p.jogo_id = j.id
+            JOIN resultados r ON p.id = r.partida_id
+            WHERE p.valida_ranking = 'S'
+            ORDER BY p.data ASC, p.id ASC
+        """
+        df = pd.read_sql_query(query, conn)
+        conn.close()
+
+        if len(df) == 0:
+            return pd.DataFrame()
+
+        jogadores = db.get_jogadores()
+        jogador_nomes = dict(zip(jogadores['id'], jogadores['nome']))
+
+        # Acumula partidas por jogador conforme elas vão acontecendo
+        historico = {jid: [] for jid in jogadores['id']}
+        snapshots = []
+        partidas_ids = list(dict.fromkeys(df['partida_id'].tolist()))  # preserva ordem cronológica
+
+        for i, partida_id in enumerate(partidas_ids):
+            partida_df = df[df['partida_id'] == partida_id]
+            data = partida_df['data'].iloc[0]
+
+            # Acumula resultado desta partida pra cada jogador participante
+            for _, row in partida_df.iterrows():
+                jid = row['jogador_id']
+                if jid in historico:
+                    historico[jid].append({
+                        'posicao': row['posicao'],
+                        'total_jogadores': row['total_jogadores'],
+                        'peso': row['peso']
+                    })
+
+            # Snapshot: calcula aproveitamento atual de cada jogador com partidas suficientes
+            for jid in jogadores['id']:
+                if not historico[jid]:
+                    continue
+                recentes = historico[jid][-limite_partidas:]
+                df_temp = pd.DataFrame(recentes)
+                aprov = RankingCalculator.calcular_aproveitamento(df_temp, peso_jogo=True)
+                nome = jogador_nomes.get(jid)
+                if nome:
+                    snapshots.append({
+                        'Partida': i + 1,
+                        'Data': data,
+                        'Jogador': nome,
+                        'Aproveitamento': aprov,
+                    })
+
+        return pd.DataFrame(snapshots)

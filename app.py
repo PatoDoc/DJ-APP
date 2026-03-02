@@ -312,11 +312,11 @@ elif menu == "🏆 Rankings":
             ranking_aprov = RankingCalculator.calcular_ranking_aproveitamento(db, limite_partidas=limite, data_filtro=data_filtro)
         
         if len(ranking_aprov) > 0:
-            # Formata para exibição
-            ranking_aprov['aproveitamento'] = ranking_aprov['aproveitamento'].apply(lambda x: f"{x:.2f}%")
+            ranking_exib = ranking_aprov.copy()
+            ranking_exib['aproveitamento'] = ranking_exib['aproveitamento'].apply(lambda x: f"{x:.2f}%")
             
             st.dataframe(
-                ranking_aprov,
+                ranking_exib,
                 width="stretch",
                 column_config={
                     "jogador": "Jogador",
@@ -325,6 +325,23 @@ elif menu == "🏆 Rankings":
                 }
             )
 
+            st.markdown("---")
+            st.subheader("📈 Evolução do Aproveitamento")
+
+            with st.spinner("Calculando histórico..."):
+                historico = RankingCalculator.calcular_historico_aproveitamento(db, limite_partidas=limite)
+
+            if len(historico) > 0:
+                pivot = historico.pivot_table(
+                    index='Partida', columns='Jogador', values='Aproveitamento'
+                ).reset_index()
+
+                st.line_chart(
+                    pivot.set_index('Partida'),
+                    use_container_width=True,
+                )
+            else:
+                st.info("Histórico indisponível.")
         else:
             st.info("Nenhum jogador com partidas registradas ainda.")
     
